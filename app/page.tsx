@@ -175,12 +175,12 @@ export default function Home() {
         {activeLayer === 'aqi' && (
           <>
             <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span><span className="text-gray-300">?臬末</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316]"></span><span className="text-gray-300">銝摨?/span></div>
+            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316]"></span><span className="text-gray-300">銝摨?</span></div>
             <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#7e22ce] shadow-[0_0_8px_#7e22ce]"></span><span className="text-gray-300">?勗拿</span></div>
           </>
         )}
         {activeLayer === 'typhoon' && typhoon && (
-          <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] shadow-[0_0_8px_#ef4444] animate-pulse"></span><span className="text-gray-300">憸梢◢銝剖??憸典?敺?皜?/span></div>
+          <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] shadow-[0_0_8px_#ef4444] animate-pulse"></span><span className="text-gray-300">憸梢◢銝剖??憸典?敺?皜?</span></div>
         )}
       </div>
 
