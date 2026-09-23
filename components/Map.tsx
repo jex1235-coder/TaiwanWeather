@@ -142,9 +142,10 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
           url="https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}"
         />
         
-        {/* 全球動態氣流場 (Wind Stream) - 亦可在颱風模式中連動 */}
+        {/* 全球動態氣流場 (Wind Stream) - 以真實 349 測站風速風向內插，亦可在颱風模式中連動 */}
         {(activeLayer === 'wind' || activeLayer === 'typhoon') && (
           <WindField 
+            stations={stations}
             typhoon={typhoon} 
             typhoonCenter={activeLayer === 'typhoon' ? { lat: interpLat, lon: interpLon } : null}
             speedMultiplier={activeLayer === 'typhoon' ? 1.25 : 1.0}
@@ -169,7 +170,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
           />
         )}
 
-        {/* 天氣測站點位 (氣溫、雨量、濕度) */}
+        {/* 天氣測站點位 (氣溫、雨量、濕度、風向風速) */}
         {['temp', 'rain', 'humid', 'wind'].includes(activeLayer) && stations.map((st, i) => {
           let color = "#38bdf8";
           let displayVal = "";
@@ -208,7 +209,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
                   <div className="text-[14px] space-y-1.5 font-mono tracking-wide">
                     <div className={activeLayer==='temp' ? 'font-bold text-[16px] text-white' : ''} style={activeLayer==='temp'?{color}: {}}>氣溫: {st.temp}°C</div>
                     <div className={activeLayer==='humid' ? 'font-bold text-[16px] text-white' : 'text-sky-300'} style={activeLayer==='humid'?{color}: {}}>濕度: {st.humid}%</div>
-                    <div className={activeLayer==='wind' ? 'font-bold text-[16px] text-white' : 'text-amber-400'} style={activeLayer==='wind'?{color}: {}}>風速: {st.wind} m/s</div>
+                    <div className={activeLayer==='wind' ? 'font-bold text-[16px] text-white' : 'text-amber-400'} style={activeLayer==='wind'?{color}: {}}>風向風速: {st.wind} m/s {st.windDir != null ? `(${st.windDir}°)` : ''}</div>
                     <div className={activeLayer==='rain' ? 'font-bold text-[16px] text-white' : 'text-indigo-400'} style={activeLayer==='rain'?{color}: {}}>雨量: {st.rain} mm</div>
                   </div>
                 </div>

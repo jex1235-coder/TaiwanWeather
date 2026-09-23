@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import { useMap } from 'react-leaflet';
-import L from 'leaflet';
 
 interface WindFieldProps {
+  stations?: any[];
   typhoon?: any;
   typhoonCenter?: { lat: number; lon: number } | null;
   speedMultiplier?: number;
@@ -19,6 +19,7 @@ interface Particle {
 }
 
 export default function WindField({ 
+  stations = [],
   typhoon, 
   typhoonCenter,
   speedMultiplier = 1.0, 
@@ -27,8 +28,12 @@ export default function WindField({
   const map = useMap();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
+  // 篩選出具備有效風向風速資料的真實氣象測站
+  const windStations = (stations || []).filter(
+    (s: any) => typeof s.wind === 'number' && typeof s.windDir === 'number' && !isNaN(s.lat) && !isNaN(s.lon)
+  );
+
   useEffect(() => {
-    // 建立獨立的 Canvas 疊加層
     const container = map.getContainer();
     const canvas = document.createElement('canvas');
     canvas.style.position = 'absolute';
@@ -56,17 +61,16 @@ export default function WindField({
     };
     map.on('resize', onResize);
 
-    // 粒子數量 (依螢幕大小動態配置，維持 60 FPS 極速順暢)
-    const PARTICLE_COUNT = Math.min(1800, Math.floor((width * height) / 600));
+    const PARTICLE_COUNT = Math.min(2200, Math.floor((width * height) / 550));
     const particles: Particle[] = [];
 
     const getBounds = () => {
       const b = map.getBounds();
       return {
-        minLat: b.getSouth() - 2,
-        maxLat: b.getNorth() + 2,
-        minLon: b.getWest() - 3,
-        maxLon: b.getEast() + 3,
+        minLat: b.getSouth() - 1.5,
+        maxLat: b.getNorth() + 1.5,
+        minLon: b.getWest() - 2.5,
+        maxLon: b.getEast() + 2.5,
       };
     };
 
@@ -75,87 +79,105 @@ export default function WindField({
       p.lat = b.minLat + Math.random() * (b.maxLat - b.minLat);
       p.lon = b.minLon + Math.random() * (b.maxLon - b.minLon);
       p.age = 0;
-      p.maxAge = 40 + Math.floor(Math.random() * 50);
-      p.speed = 0.8 + Math.random() * 0.7;
+      p.maxAge = 35 + Math.floor(Math.random() * 45);
+      p.speed = 0.8 + Math.random() * 0.6;
     };
 
-    // 初始化粒子
     for (let i = 0; i < PARTICLE_COUNT; i++) {
       const p: Particle = { lat: 0, lon: 0, age: 0, maxAge: 0, speed: 1 };
       resetParticle(p);
-      p.age = Math.floor(Math.random() * p.maxAge); // 隨機初始壽命避免同時重生
+      p.age = Math.floor(Math.random() * p.maxAge);
       particles.push(p);
     }
 
-    // 計算指定經緯度之風向風速向量 (u: 經度方向, v: 緯度方向)
+    // 計算特定座標之風向風速 (以 349 處真實測站 IDW 逆距離權重內插 + 海域氣旋環流)
     const getWindVector = (lat: number, lon: number) => {
-      // 1. 背景環境氣流：台灣盛行之東北季風/太平洋高壓環流 (自東北往西南流動)
-      let u = -0.045; // 向西
-      let v = -0.022; // 向南
+      let realU = 0;
+      let realV = 0;
+      let totalWeight = 0;
+      let minDist = 999;
 
-      // 台灣地形阻擋與海峽噴流效應 (流經台灣海峽加速，繞過中央山脈)
-      const nearTaiwan = lat > 21.5 && lat < 25.5 && lon > 119.5 && lon < 122.2;
-      if (nearTaiwan) {
-        // 台灣海峽風道加速
-        if (lon < 120.6) {
-          u *= 1.4;
-          v *= 1.5;
-        } else if (lon > 120.8 && lon < 121.8) {
-          // 中央山脈背風/阻擋弱風
-          u *= 0.5;
-          v *= 0.6;
+      // 1. 真實測站 IDW (Inverse Distance Weighting) 插值演算
+      if (windStations.length > 0) {
+        // 取最近的 5 個測站權重融合
+        for (let i = 0; i < windStations.length; i++) {
+          const st = windStations[i];
+          const dLat = lat - st.lat;
+          const dLon = lon - st.lon;
+          const d = Math.sqrt(dLat * dLat + dLon * dLon);
+          if (d < minDist) minDist = d;
+
+          // 距離影響半徑限制在 2 度 (~200公里) 內
+          if (d < 2.0) {
+            const w = 1.0 / Math.pow(d + 0.08, 2);
+            realU += st.windU * w;
+            realV += st.windV * w;
+            totalWeight += w;
+          }
         }
       }
 
-      // 2. 颱風強烈氣旋渦流 (北半球逆時針旋轉 + 向心輻合氣流)
-      const center = typhoonCenter || (typhoon?.current ? { lat: typhoon.current.lat, lon: typhoon.current.lon } : null);
-      if (center) {
-        const dLat = lat - center.lat;
-        const dLon = lon - center.lon;
-        const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+      let u = 0;
+      let v = 0;
+      let isRealDominated = false;
 
-        // 颱風影響半徑約 12 度經緯度
-        if (dist < 14) {
-          // 逆時針旋轉切線角 + 內收向心角 (約 18 度輻合)
-          const angle = Math.atan2(dLat, dLon) + Math.PI / 2 - 0.32;
-          
-          // 近中心風速最大 (Rankine 渦旋模型)
-          const radiusScale = (typhoon.current?.radius7 || 100) / 110; // 轉經緯度約 1-2 度
-          let vortexSpeed = 0;
-          if (dist < 0.4) {
-            // 颱風眼內風速驟降
-            vortexSpeed = (dist / 0.4) * 0.12;
-          } else {
-            // 眼牆外風速向外遞減
-            vortexSpeed = 0.22 * Math.exp(-(dist - 0.4) / (radiusScale * 2.8));
+      if (totalWeight > 0) {
+        realU /= totalWeight;
+        realV /= totalWeight;
+        
+        // 測站風速 (m/s) 轉為每幀經緯度移動跨度
+        const scale = 0.007;
+        const stationInfluence = Math.max(0, 1 - (minDist / 1.8));
+        
+        u = realU * scale * stationInfluence;
+        v = realV * scale * stationInfluence;
+        if (minDist < 0.6) isRealDominated = true;
+      }
+
+      // 2. 太平洋與外海背景環境場 (當遠離測站覆蓋區域時無縫融合)
+      if (!isRealDominated) {
+        let envU = -0.025; // 偏東微風
+        let envV = -0.012; // 偏北微風
+
+        // 颱風氣旋環流
+        const center = typhoonCenter || (typhoon?.current ? { lat: typhoon.current.lat, lon: typhoon.current.lon } : null);
+        if (center) {
+          const dLat = lat - center.lat;
+          const dLon = lon - center.lon;
+          const dist = Math.sqrt(dLat * dLat + dLon * dLon);
+
+          if (dist < 14) {
+            const angle = Math.atan2(dLat, dLon) + Math.PI / 2 - 0.28;
+            const vortexSpeed = 0.18 * Math.exp(-dist / 3.5);
+            const w = Math.max(0, 1 - dist / 14);
+            envU = envU * (1 - w) + Math.cos(angle) * vortexSpeed * w;
+            envV = envV * (1 - w) + Math.sin(angle) * vortexSpeed * w;
           }
-
-          const weight = Math.max(0, 1 - (dist / 14));
-          u = u * (1 - weight) + Math.cos(angle) * vortexSpeed * weight;
-          v = v * (1 - weight) + Math.sin(angle) * vortexSpeed * weight;
         }
+
+        const envWeight = Math.min(1, Math.max(0, (minDist - 0.3) / 1.2));
+        u = u * (1 - envWeight) + envU * envWeight;
+        v = v * (1 - envWeight) + envV * envWeight;
       }
 
       return { u: u * speedMultiplier, v: v * speedMultiplier };
     };
 
-    // 速度轉色彩 (柔和螢光 Cyber 漸層)
+    // 速度轉色彩 (以 m/s 等級感知的柔和 Cyber 漸層)
     const getColor = (speedMag: number) => {
-      if (speedMag > 0.14) return '#f43f5e'; // 強烈風暴 (霓虹粉紅)
-      if (speedMag > 0.09) return '#facc15'; // 強風 (螢光黃)
-      if (speedMag > 0.05) return '#34d399'; // 中度風 (電光綠)
-      return '#38bdf8';                     // 微風 (天空冰藍)
+      if (speedMag > 0.10) return '#f43f5e'; // 強烈陣風 / 暴風 (>15 m/s)
+      if (speedMag > 0.055) return '#facc15'; // 強風 (8-15 m/s)
+      if (speedMag > 0.025) return '#34d399'; // 和風 (4-8 m/s)
+      return '#38bdf8';                      // 微風 (<4 m/s)
     };
 
-    // 每一幀的渲染循環
     const render = () => {
-      // 半透明背景重繪產生粒子拖曳尾跡 (流線感)
       ctx.globalCompositeOperation = 'destination-out';
       ctx.fillStyle = 'rgba(0, 0, 0, 0.09)';
       ctx.fillRect(0, 0, width, height);
 
       ctx.globalCompositeOperation = 'source-over';
-      ctx.lineWidth = 1.3;
+      ctx.lineWidth = 1.35;
       ctx.lineCap = 'round';
 
       const bounds = getBounds();
@@ -163,7 +185,6 @@ export default function WindField({
       for (let i = 0; i < PARTICLE_COUNT; i++) {
         const p = particles[i];
 
-        // 超出邊界或過期則重新產生
         if (
           p.age >= p.maxAge ||
           p.lat < bounds.minLat ||
@@ -176,8 +197,6 @@ export default function WindField({
         }
 
         const screenStart = map.latLngToContainerPoint([p.lat, p.lon]);
-
-        // 計算向量與移動
         const vec = getWindVector(p.lat, p.lon);
         const nextLat = p.lat + vec.v * p.speed;
         const nextLon = p.lon + vec.u * p.speed;
@@ -185,16 +204,15 @@ export default function WindField({
 
         const speedMag = Math.sqrt(vec.u * vec.u + vec.v * vec.v);
 
-        // 螢幕內部才繪製
         if (
           screenStart.x >= 0 &&
           screenStart.x <= width &&
           screenStart.y >= 0 &&
           screenStart.y <= height
         ) {
-          const alpha = Math.sin((p.age / p.maxAge) * Math.PI); // 淡入淡出
+          const alpha = Math.sin((p.age / p.maxAge) * Math.PI);
           ctx.strokeStyle = getColor(speedMag);
-          ctx.globalAlpha = alpha * 0.75;
+          ctx.globalAlpha = alpha * 0.8;
           ctx.beginPath();
           ctx.moveTo(screenStart.x, screenStart.y);
           ctx.lineTo(screenEnd.x, screenEnd.y);
@@ -218,7 +236,7 @@ export default function WindField({
         container.removeChild(canvas);
       }
     };
-  }, [map, typhoon, typhoonCenter, speedMultiplier, opacity]);
+  }, [map, windStations, typhoon, typhoonCenter, speedMultiplier, opacity]);
 
   return null;
 }

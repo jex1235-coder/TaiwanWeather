@@ -20,6 +20,14 @@ export async function GET(request: Request) {
         const humid = parseFloat(s.WeatherElement?.RelativeHumidity);
         const rain = parseFloat(s.WeatherElement?.Now?.Precipitation || s.WeatherElement?.DailyPrecipitation);
         const wind = parseFloat(s.WeatherElement?.WindSpeed);
+        const windDir = parseFloat(s.WeatherElement?.WindDirection);
+        let windU = 0;
+        let windV = 0;
+        if (!isNaN(wind) && !isNaN(windDir) && wind >= 0 && windDir >= 0) {
+          const rad = (windDir * Math.PI) / 180;
+          windU = -wind * Math.sin(rad);
+          windV = -wind * Math.cos(rad);
+        }
         
         if (!isNaN(temp) && temp > -40 && temp < 50) {
            if (temp > maxTemp.val) maxTemp = { val: temp, name: s.StationName };
@@ -36,6 +44,9 @@ export async function GET(request: Request) {
           humid: isNaN(humid) || humid < 0 ? null : humid,
           rain: isNaN(rain) || rain < 0 ? 0 : rain,
           wind: isNaN(wind) || wind < 0 ? null : wind,
+          windDir: isNaN(windDir) || windDir < 0 ? null : windDir,
+          windU: parseFloat(windU.toFixed(2)),
+          windV: parseFloat(windV.toFixed(2)),
         };
       }).filter((s: any) => s.temp !== null);
 
