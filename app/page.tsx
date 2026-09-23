@@ -72,47 +72,47 @@ export default function Home() {
       </div>
 
       {/* 右側懸浮動態抽屜面板 (圖層控制) */}
-      <div className="absolute right-6 top-28 z-[1000] glass-panel p-4 rounded-3xl w-[250px] flex flex-col gap-2.5 transition-transform duration-500 pointer-events-auto max-h-[75vh] overflow-y-auto custom-scrollbar">
+      <div className="absolute right-6 top-28 z-[1000] glass-panel p-4 rounded-3xl w-[270px] flex flex-col gap-2 transition-transform duration-500 pointer-events-auto max-h-[75vh] overflow-y-auto custom-scrollbar">
         <div className="text-[11px] font-bold text-sky-400/80 uppercase tracking-[0.2em] mb-1 px-1" style={{fontFamily: 'var(--font-space)'}}>LAYER CONTROL</div>
         
-        <button onClick={() => setActiveLayer('temp')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'temp' ? 'bg-sky-500/30 text-sky-300 border-sky-500/50 shadow-[0_0_20px_rgba(56,189,248,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <Thermometer size={18} className={activeLayer === 'temp' ? "animate-pulse text-sky-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>即時氣溫分布</span>
+        <button onClick={() => setActiveLayer('temp')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'temp' ? 'bg-sky-500/30 text-sky-300 border-sky-500/50 shadow-[0_0_20px_rgba(56,189,248,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Thermometer size={18} className={`shrink-0 ${activeLayer === 'temp' ? "animate-pulse text-sky-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>即時氣溫分布</span>
         </button>
         
-        <button onClick={() => setActiveLayer('rain')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'rain' ? 'bg-indigo-500/30 text-indigo-300 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <CloudRain size={18} className={activeLayer === 'rain' ? "animate-bounce text-indigo-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>測站累積雨量</span>
+        <button onClick={() => setActiveLayer('rain')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'rain' ? 'bg-indigo-500/30 text-indigo-300 border-indigo-500/50 shadow-[0_0_20px_rgba(99,102,241,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <CloudRain size={18} className={`shrink-0 ${activeLayer === 'rain' ? "animate-bounce text-indigo-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>測站累積雨量</span>
         </button>
 
-        <button onClick={() => setActiveLayer('wind')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'wind' ? 'bg-sky-400/30 text-sky-200 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.35)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <Wind size={18} className={activeLayer === 'wind' ? "animate-[spin_4s_linear_infinite] text-sky-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>動態氣流場 (Wind)</span>
+        <button onClick={() => setActiveLayer('wind')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'wind' ? 'bg-sky-400/30 text-sky-200 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.35)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Wind size={18} className={`shrink-0 ${activeLayer === 'wind' ? "animate-[spin_4s_linear_infinite] text-sky-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>動態氣流場 (Wind)</span>
         </button>
 
-        <button onClick={() => setActiveLayer('cwa_radar')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'cwa_radar' ? 'bg-cyan-500/30 text-cyan-300 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <Activity size={18} className={activeLayer === 'cwa_radar' ? "animate-pulse text-cyan-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>台灣雷達 (CWA官方)</span>
+        <button onClick={() => setActiveLayer('cwa_radar')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'cwa_radar' ? 'bg-cyan-500/30 text-cyan-300 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Activity size={18} className={`shrink-0 ${activeLayer === 'cwa_radar' ? "animate-pulse text-cyan-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>台灣雷達 (CWA官方)</span>
         </button>
         
-        <button onClick={() => setActiveLayer('radar')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'radar' ? 'bg-fuchsia-500/30 text-fuchsia-300 border-fuchsia-500/50 shadow-[0_0_20px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <RadioReceiver size={18} className={activeLayer === 'radar' ? "animate-spin text-fuchsia-300" : ""} style={{ animationDuration: '3s' }} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>全球雷達 (RainViewer)</span>
+        <button onClick={() => setActiveLayer('radar')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'radar' ? 'bg-fuchsia-500/30 text-fuchsia-300 border-fuchsia-500/50 shadow-[0_0_20px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <RadioReceiver size={18} className={`shrink-0 ${activeLayer === 'radar' ? "animate-spin text-fuchsia-300" : ""}`} style={{ animationDuration: '3s' }} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>全球雷達 (RainViewer)</span>
         </button>
         
-        <button onClick={() => setActiveLayer('humid')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'humid' ? 'bg-teal-500/30 text-teal-300 border-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <Droplets size={18} className={activeLayer === 'humid' ? "animate-pulse text-teal-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>全台濕度分布</span>
+        <button onClick={() => setActiveLayer('humid')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'humid' ? 'bg-teal-500/30 text-teal-300 border-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Droplets size={18} className={`shrink-0 ${activeLayer === 'humid' ? "animate-pulse text-teal-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>全台濕度分布</span>
         </button>
 
-        <button onClick={() => setActiveLayer('aqi')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'aqi' ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <Leaf size={18} className={activeLayer === 'aqi' ? "animate-pulse text-emerald-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>空氣品質 (AQI)</span>
+        <button onClick={() => setActiveLayer('aqi')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'aqi' ? 'bg-emerald-500/30 text-emerald-300 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Leaf size={18} className={`shrink-0 ${activeLayer === 'aqi' ? "animate-pulse text-emerald-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>空氣品質 (AQI)</span>
         </button>
 
-        <button onClick={() => setActiveLayer('typhoon')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'typhoon' ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
-          <Tornado size={18} className={activeLayer === 'typhoon' ? "animate-[spin_1s_linear_infinite] text-rose-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>颱風動態預測模擬</span>
+        <button onClick={() => setActiveLayer('typhoon')} className={`group flex items-center gap-3 w-full h-[46px] min-h-[46px] px-4 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'typhoon' ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Tornado size={18} className={`shrink-0 ${activeLayer === 'typhoon' ? "animate-[spin_1s_linear_infinite] text-rose-300" : ""}`} />
+          <span className="font-bold text-[14px] tracking-wide whitespace-nowrap" style={{fontFamily: 'var(--font-noto)'}}>颱風動態預測模擬</span>
         </button>
 
         <div className="my-2 border-t border-sky-500/20"></div>
