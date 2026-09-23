@@ -84,10 +84,20 @@ export default function Home() {
           <CloudRain size={18} className={activeLayer === 'rain' ? "animate-bounce text-indigo-300" : ""} />
           <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>測站累積雨量</span>
         </button>
+
+        <button onClick={() => setActiveLayer('wind')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'wind' ? 'bg-sky-400/30 text-sky-200 border-sky-400/50 shadow-[0_0_20px_rgba(56,189,248,0.35)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Wind size={18} className={activeLayer === 'wind' ? "animate-[spin_4s_linear_infinite] text-sky-300" : ""} />
+          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>動態氣流場 (Wind)</span>
+        </button>
+
+        <button onClick={() => setActiveLayer('cwa_radar')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'cwa_radar' ? 'bg-cyan-500/30 text-cyan-300 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
+          <Activity size={18} className={activeLayer === 'cwa_radar' ? "animate-pulse text-cyan-300" : ""} />
+          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>台灣雷達 (CWA官方)</span>
+        </button>
         
         <button onClick={() => setActiveLayer('radar')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'radar' ? 'bg-fuchsia-500/30 text-fuchsia-300 border-fuchsia-500/50 shadow-[0_0_20px_rgba(217,70,239,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
           <RadioReceiver size={18} className={activeLayer === 'radar' ? "animate-spin text-fuchsia-300" : ""} style={{ animationDuration: '3s' }} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>即時降雨雷達</span>
+          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>全球雷達 (RainViewer)</span>
         </button>
         
         <button onClick={() => setActiveLayer('humid')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'humid' ? 'bg-teal-500/30 text-teal-300 border-teal-500/50 shadow-[0_0_20px_rgba(20,184,166,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
@@ -102,7 +112,7 @@ export default function Home() {
 
         <button onClick={() => setActiveLayer('typhoon')} className={`group flex items-center gap-3 w-full px-4 py-3 rounded-2xl border transition-all hover:scale-[1.02] ${activeLayer === 'typhoon' ? 'bg-rose-500/30 text-rose-300 border-rose-500/50 shadow-[0_0_20px_rgba(244,63,94,0.3)]' : 'bg-white/5 text-gray-300 border-white/10 hover:bg-white/10 hover:text-white'}`}>
           <Tornado size={18} className={activeLayer === 'typhoon' ? "animate-[spin_1s_linear_infinite] text-rose-300" : ""} />
-          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>颱風路徑預測</span>
+          <span className="font-bold text-[14px] tracking-wide" style={{fontFamily: 'var(--font-noto)'}}>颱風動態預測模擬</span>
         </button>
 
         <div className="my-2 border-t border-sky-500/20"></div>
@@ -140,43 +150,52 @@ export default function Home() {
         </div>
       )}
 
-      {/* 底部圖例 */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] glass-panel px-6 py-2.5 rounded-full flex items-center gap-6 text-[13px] font-bold tracking-wider pointer-events-auto" style={{fontFamily: 'var(--font-noto)'}}>
-        {activeLayer === 'temp' && (
-          <>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span><span className="text-gray-300">舒適 (&lt;25°)</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]"></span><span className="text-gray-300">溫暖 (25-30°)</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e] shadow-[0_0_8px_#f43f5e]"></span><span className="text-gray-300">炎熱 (&gt;30°)</span></div>
-          </>
-        )}
-        {activeLayer === 'rain' && (
-          <>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#60a5fa] shadow-[0_0_8px_#60a5fa]"></span><span className="text-gray-300">微雨 (&gt;0mm)</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shadow-[0_0_8px_#3b82f6]"></span><span className="text-gray-300">大雨 (&gt;10mm)</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] shadow-[0_0_8px_#7c3aed]"></span><span className="text-gray-300">豪雨 (&gt;50mm)</span></div>
-          </>
-        )}
-        {activeLayer === 'humid' && (
-          <>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#fcd34d] shadow-[0_0_8px_#fcd34d]"></span><span className="text-gray-300">乾燥 (&lt;70%)</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]"></span><span className="text-gray-300">微濕 (70-90%)</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9] shadow-[0_0_8px_#0ea5e9]"></span><span className="text-gray-300">潮濕 (&gt;90%)</span></div>
-          </>
-        )}
-        {activeLayer === 'radar' && (
-          <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#d946ef] shadow-[0_0_8px_#d946ef] animate-pulse"></span><span className="text-gray-300">Live 雷達回波圖已啟動</span></div>
-        )}
-        {activeLayer === 'aqi' && (
-          <>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span><span className="text-gray-300">良好</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316]"></span><span className="text-gray-300">不健康</span></div>
-            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#7e22ce] shadow-[0_0_8px_#7e22ce]"></span><span className="text-gray-300">危害</span></div>
-          </>
-        )}
-        {activeLayer === 'typhoon' && typhoon && (
-          <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#ef4444] shadow-[0_0_8px_#ef4444] animate-pulse"></span><span className="text-gray-300">颱風中心與暴風半徑預測</span></div>
-        )}
-      </div>
+      {/* 底部圖例 (颱風模式時隱藏以讓出空間給播放軸) */}
+      {activeLayer !== 'typhoon' && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] glass-panel px-6 py-2.5 rounded-full flex items-center gap-6 text-[13px] font-bold tracking-wider pointer-events-auto shadow-2xl" style={{fontFamily: 'var(--font-noto)'}}>
+          {activeLayer === 'temp' && (
+            <>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span><span className="text-gray-300">舒適 (&lt;25°)</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f59e0b] shadow-[0_0_8px_#f59e0b]"></span><span className="text-gray-300">溫暖 (25-30°)</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e] shadow-[0_0_8px_#f43f5e]"></span><span className="text-gray-300">炎熱 (&gt;30°)</span></div>
+            </>
+          )}
+          {activeLayer === 'rain' && (
+            <>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#60a5fa] shadow-[0_0_8px_#60a5fa]"></span><span className="text-gray-300">微雨 (&gt;0mm)</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#3b82f6] shadow-[0_0_8px_#3b82f6]"></span><span className="text-gray-300">大雨 (&gt;10mm)</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#7c3aed] shadow-[0_0_8px_#7c3aed]"></span><span className="text-gray-300">豪雨 (&gt;50mm)</span></div>
+            </>
+          )}
+          {activeLayer === 'wind' && (
+            <>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#38bdf8] shadow-[0_0_8px_#38bdf8] animate-pulse"></span><span className="text-gray-300">微風流線</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#34d399] shadow-[0_0_8px_#34d399]"></span><span className="text-gray-300">強風流場</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f43f5e] shadow-[0_0_8px_#f43f5e]"></span><span className="text-gray-300">氣旋風暴</span></div>
+            </>
+          )}
+          {activeLayer === 'cwa_radar' && (
+            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#06b6d4] shadow-[0_0_8px_#06b6d4] animate-pulse"></span><span className="text-gray-300">CWA 氣象署官方無地形高解析雷達</span></div>
+          )}
+          {activeLayer === 'humid' && (
+            <>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#fcd34d] shadow-[0_0_8px_#fcd34d]"></span><span className="text-gray-300">乾燥 (&lt;70%)</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#2dd4bf] shadow-[0_0_8px_#2dd4bf]"></span><span className="text-gray-300">微濕 (70-90%)</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#0ea5e9] shadow-[0_0_8px_#0ea5e9]"></span><span className="text-gray-300">潮濕 (&gt;90%)</span></div>
+            </>
+          )}
+          {activeLayer === 'radar' && (
+            <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#d946ef] shadow-[0_0_8px_#d946ef] animate-pulse"></span><span className="text-gray-300">全球即時雷達回波 (RainViewer)</span></div>
+          )}
+          {activeLayer === 'aqi' && (
+            <>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#10b981] shadow-[0_0_8px_#10b981]"></span><span className="text-gray-300">良好</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#f97316] shadow-[0_0_8px_#f97316]"></span><span className="text-gray-300">不健康</span></div>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#7e22ce] shadow-[0_0_8px_#7e22ce]"></span><span className="text-gray-300">危害</span></div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* 無颱風時的提示 */}
       {activeLayer === 'typhoon' && !typhoon && (
