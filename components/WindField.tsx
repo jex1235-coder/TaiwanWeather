@@ -28,10 +28,15 @@ export default function WindField({
   const map = useMap();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // 篩選出具備有效風向風速資料的真實氣象測站
-  const windStations = (stations || []).filter(
-    (s: any) => typeof s.wind === 'number' && typeof s.windDir === 'number' && !isNaN(s.lat) && !isNaN(s.lon)
-  );
+  // 使用 ref 保存即時變動的資料，避免每一幀觸發 useEffect 重新掛載 Canvas 造成記憶體溢出
+  const stationsRef = useRef(stations);
+  stationsRef.current = stations;
+
+  const typhoonRef = useRef(typhoon);
+  typhoonRef.current = typhoon;
+
+  const typhoonCenterRef = useRef(typhoonCenter);
+  typhoonCenterRef.current = typhoonCenter;
 
   useEffect(() => {
     const container = map.getContainer();
@@ -61,7 +66,7 @@ export default function WindField({
     };
     map.on('resize', onResize);
 
-    const PARTICLE_COUNT = Math.min(2200, Math.floor((width * height) / 550));
+    const PARTICLE_COUNT = Math.min(1800, Math.floor((width * height) / 600));
     const particles: Particle[] = [];
 
     const getBounds = () => {
@@ -97,21 +102,23 @@ export default function WindField({
       let totalWeight = 0;
       let minDist = 999;
 
+      const currentStations = (stationsRef.current || []).filter(
+        (s: any) => typeof s.wind === 'number' && typeof s.windDir === 'number' && !isNaN(s.lat) && !isNaN(s.lon)
+      );
+
       // 1. 真實測站 IDW (Inverse Distance Weighting) 插值演算
-      if (windStations.length > 0) {
-        // 取最近的 5 個測站權重融合
-        for (let i = 0; i < windStations.length; i++) {
-          const st = windStations[i];
+      if (currentStations.length > 0) {
+        for (let i = 0; i < currentStations.length; i++) {
+          const st = currentStations[i];
           const dLat = lat - st.lat;
           const dLon = lon - st.lon;
           const d = Math.sqrt(dLat * dLat + dLon * dLon);
           if (d < minDist) minDist = d;
 
-          // 距離影響半徑限制在 2 度 (~200公里) 內
           if (d < 2.0) {
             const w = 1.0 / Math.pow(d + 0.08, 2);
-            realU += st.windU * w;
-            realV += st.windV * w;
+            realU += (st.windU || 0) * w;
+            realV += (st.windV || 0) * w;
             totalWeight += w;
           }
         }
@@ -125,7 +132,6 @@ export default function WindField({
         realU /= totalWeight;
         realV /= totalWeight;
         
-        // 測站風速 (m/s) 轉為每幀經緯度移動跨度
         const scale = 0.007;
         const stationInfluence = Math.max(0, 1 - (minDist / 1.8));
         
@@ -139,8 +145,9 @@ export default function WindField({
         let envU = -0.025; // 偏東微風
         let envV = -0.012; // 偏北微風
 
-        // 颱風氣旋環流
-        const center = typhoonCenter || (typhoon?.current ? { lat: typhoon.current.lat, lon: typhoon.current.lon } : null);
+        // 颱風氣旋環流 (讀取即時更新的颱風中心)
+        const currentTyphoon = typhoonRef.current;
+        const center = typhoonCenterRef.current || (currentTyphoon?.current ? { lat: currentTyphoon.current.lat, lon: currentTyphoon.current.lon } : null);
         if (center) {
           const dLat = lat - center.lat;
           const dLon = lon - center.lon;
@@ -163,7 +170,7 @@ export default function WindField({
       return { u: u * speedMultiplier, v: v * speedMultiplier };
     };
 
-    // 速度轉色彩 (以 m/s 等級感知的柔和 Cyber 漸層)
+    // 速度轉色彩
     const getColor = (speedMag: number) => {
       if (speedMag > 0.10) return '#f43f5e'; // 強烈陣風 / 暴風 (>15 m/s)
       if (speedMag > 0.055) return '#facc15'; // 強風 (8-15 m/s)
@@ -236,7 +243,7 @@ export default function WindField({
         container.removeChild(canvas);
       }
     };
-  }, [map, windStations, typhoon, typhoonCenter, speedMultiplier, opacity]);
+  }, [map, speedMultiplier, opacity]);
 
   return null;
 }

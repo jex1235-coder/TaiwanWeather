@@ -2,33 +2,16 @@
 import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Circle, ImageOverlay, Marker } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
-import { useEffect, useState, Fragment, useRef } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Play, Pause, RotateCcw } from 'lucide-react';
 import WindField from './WindField';
 
-// Next.js leaflet icon fix
+// Next.js leaflet default marker icon fix
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
-});
-
-// 自訂 SVG 颱風旋風圖示 (逆時針旋轉氣旋)
-const cycloneIcon = L.divIcon({
-  className: 'custom-cyclone-icon',
-  html: `
-    <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-      <div style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
-      <svg viewBox="0 0 100 100" style="width: 38px; height: 38px; filter: drop-shadow(0 0 8px #ef4444); animation: spin 2s linear infinite;" fill="none" stroke="#fca5a5" stroke-width="8">
-        <path d="M 50 15 C 30 15, 15 35, 15 50 C 15 70, 35 85, 50 85 C 45 75, 45 60, 50 50 C 55 40, 55 25, 50 15 Z" fill="#ef4444" opacity="0.9" />
-        <path d="M 85 50 C 85 30, 65 15, 50 15 C 30 15, 15 35, 15 50" stroke="#f87171" stroke-linecap="round" />
-        <circle cx="50" cy="50" r="7" fill="#fef08a" stroke="#dc2626" stroke-width="3" />
-      </svg>
-    </div>
-  `,
-  iconSize: [44, 44],
-  iconAnchor: [22, 22],
 });
 
 export default function Map({ stations, aqiStations, typhoon, activeLayer }: { stations: any[], aqiStations: any[], typhoon: any, activeLayer: string }) {
@@ -37,43 +20,51 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
   // 颱風動態預測動畫狀態
   const [typhoonStep, setTyphoonStep] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(true);
-  const animRef = useRef<number | null>(null);
+
+  // 安全建立 SVG 颱風氣旋圖示 (在客戶端 useMemo 中建立，避免 SSR 或全域解析報錯)
+  const cycloneIcon = useMemo(() => {
+    if (typeof window === 'undefined') return undefined as any;
+    return L.divIcon({
+      className: 'custom-cyclone-icon',
+      html: `
+        <div style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; pointer-events: none;">
+          <div style="position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle, rgba(239,68,68,0.4) 0%, transparent 70%); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+          <svg viewBox="0 0 100 100" style="width: 38px; height: 38px; filter: drop-shadow(0 0 8px #ef4444); animation: spin 2s linear infinite;" fill="none" stroke="#fca5a5" stroke-width="8">
+            <path d="M 50 15 C 30 15, 15 35, 15 50 C 15 70, 35 85, 50 85 C 45 75, 45 60, 50 50 C 55 40, 55 25, 50 15 Z" fill="#ef4444" opacity="0.9" />
+            <path d="M 85 50 C 85 30, 65 15, 50 15 C 30 15, 15 35, 15 50" stroke="#f87171" stroke-linecap="round" />
+            <circle cx="50" cy="50" r="7" fill="#fef08a" stroke="#dc2626" stroke-width="3" />
+          </svg>
+        </div>
+      `,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22],
+    });
+  }, []);
 
   // 全路徑節點 (現在點 + 未來預測點)
-  const allTyphoonPoints = typhoon && typhoon.current ? [
-    { ...typhoon.current, time: '現在 (即時位置)', isCurrent: true },
-    ...(typhoon.forecast || [])
-  ] : [];
+  const allTyphoonPoints = useMemo(() => {
+    if (!typhoon || !typhoon.current) return [];
+    return [
+      { ...typhoon.current, time: '現在 (即時位置)', isCurrent: true },
+      ...(typhoon.forecast || [])
+    ].filter((pt: any) => typeof pt.lat === 'number' && typeof pt.lon === 'number' && !isNaN(pt.lat) && !isNaN(pt.lon));
+  }, [typhoon]);
 
-  // 動態推進預測時間軸
+  // 動態推進預測時間軸 (使用受控的 60ms 定時器，防止 60fps 密集重繪導致 Leaflet DOM 衝突崩潰)
   useEffect(() => {
-    if (activeLayer !== 'typhoon' || !isPlaying || allTyphoonPoints.length <= 1) {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-      return;
-    }
+    if (activeLayer !== 'typhoon' || !isPlaying || allTyphoonPoints.length <= 1) return;
 
-    let lastTime = performance.now();
-    const speed = 0.25; // 每一秒推進 0.25 個預測時間節點
-
-    const loop = (now: number) => {
-      const dt = (now - lastTime) / 1000;
-      lastTime = now;
-
+    const timer = setInterval(() => {
       setTyphoonStep((prev) => {
-        const next = prev + speed * dt;
+        const next = prev + 0.02;
         if (next >= allTyphoonPoints.length - 1) {
           return 0; // 循環播放
         }
         return next;
       });
+    }, 60);
 
-      animRef.current = requestAnimationFrame(loop);
-    };
-
-    animRef.current = requestAnimationFrame(loop);
-    return () => {
-      if (animRef.current) cancelAnimationFrame(animRef.current);
-    };
+    return () => clearInterval(timer);
   }, [activeLayer, isPlaying, allTyphoonPoints.length]);
 
   // RainViewer 雷達
@@ -94,7 +85,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
 
   // 插值計算颱風當前運動中心座標
   let interpLat = typhoon?.current?.lat || 23.5;
-  let interpLon = typhoon?.current?.lon || 121;
+  let interpLon = typhoon?.current?.lon || 121.0;
   let interpTime = '即時位置';
   let interpRadius = (typhoon?.current?.radius7 || 100) * 1000;
 
@@ -103,11 +94,19 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
     const frac = typhoonStep - idx;
     const p1 = allTyphoonPoints[idx];
     const p2 = allTyphoonPoints[idx + 1];
-    interpLat = p1.lat + (p2.lat - p1.lat) * frac;
-    interpLon = p1.lon + (p2.lon - p1.lon) * frac;
-    interpTime = frac > 0.5 ? p2.time : p1.time;
-    interpRadius = ((p1.radius7 || 100) + ((p2.radius7 || 100) - (p1.radius7 || 100)) * frac) * 1000;
+    if (p1 && p2) {
+      interpLat = p1.lat + (p2.lat - p1.lat) * frac;
+      interpLon = p1.lon + (p2.lon - p1.lon) * frac;
+      interpTime = frac > 0.5 ? p2.time : p1.time;
+      const r1 = p1.radius7 || 100;
+      const r2 = p2.radius7 || 100;
+      interpRadius = (r1 + (r2 - r1) * frac) * 1000;
+    }
   }
+
+  const safeLat = typeof interpLat === 'number' && !isNaN(interpLat) ? interpLat : 23.5;
+  const safeLon = typeof interpLon === 'number' && !isNaN(interpLon) ? interpLon : 121.0;
+  const safeRadius = typeof interpRadius === 'number' && !isNaN(interpRadius) && interpRadius > 0 ? interpRadius : 80000;
 
   // 走過的路徑與尚未到達的預測路徑
   const traversedPositions: [number, number][] = [];
@@ -115,12 +114,12 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
 
   if (allTyphoonPoints.length > 1) {
     const currIdx = Math.floor(typhoonStep);
-    for (let i = 0; i <= currIdx; i++) {
+    for (let i = 0; i <= currIdx && i < allTyphoonPoints.length; i++) {
       traversedPositions.push([allTyphoonPoints[i].lat, allTyphoonPoints[i].lon]);
     }
-    traversedPositions.push([interpLat, interpLon]);
+    traversedPositions.push([safeLat, safeLon]);
 
-    futurePositions.push([interpLat, interpLon]);
+    futurePositions.push([safeLat, safeLon]);
     for (let i = currIdx + 1; i < allTyphoonPoints.length; i++) {
       futurePositions.push([allTyphoonPoints[i].lat, allTyphoonPoints[i].lon]);
     }
@@ -147,7 +146,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
           <WindField 
             stations={stations}
             typhoon={typhoon} 
-            typhoonCenter={activeLayer === 'typhoon' ? { lat: interpLat, lon: interpLon } : null}
+            typhoonCenter={activeLayer === 'typhoon' ? { lat: safeLat, lon: safeLon } : null}
             speedMultiplier={activeLayer === 'typhoon' ? 1.25 : 1.0}
             opacity={activeLayer === 'wind' ? 0.9 : 0.75}
           />
@@ -258,7 +257,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
         {activeLayer === 'typhoon' && typhoon && typhoon.current && (
           <>
             {/* 已走過的歷史與即時模擬軌跡 (實線發光) */}
-            {traversedPositions.length > 1 && (
+            {traversedPositions.length >= 2 && (
               <Polyline 
                 positions={traversedPositions} 
                 color="#ef4444" 
@@ -268,7 +267,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
             )}
 
             {/* 未來預測路徑 (虛線發光) */}
-            {futurePositions.length > 1 && (
+            {futurePositions.length >= 2 && (
               <Polyline 
                 positions={futurePositions} 
                 color="#fca5a5" 
@@ -289,7 +288,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
                 fillOpacity={0.9} 
                 weight={pt.isCurrent ? 2 : 1}
               >
-                <Popup>
+                <Popup autoPan={false}>
                   <div className="font-bold font-mono text-rose-400 p-1">
                     <div>{pt.time}</div>
                     <div className="text-xs text-gray-300 mt-1">座標: {pt.lat}°N, {pt.lon}°E</div>
@@ -302,8 +301,8 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
             {[1, 0.75, 0.5, 0.25].map((scale, idx) => (
               <Circle 
                 key={`storm-circle-${idx}`}
-                center={[interpLat, interpLon]} 
-                radius={interpRadius * scale} 
+                center={[safeLat, safeLon]} 
+                radius={safeRadius * scale} 
                 color={idx === 0 ? "#ef4444" : "transparent"} 
                 fillColor={idx === 3 ? "#fef08a" : "#ef4444"} 
                 fillOpacity={0.06 + (0.05 * idx)} 
@@ -313,23 +312,25 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
             ))}
 
             {/* 動態旋轉的颱風眼中心圖示 (使用 Leaflet divIcon) */}
-            <Marker position={[interpLat, interpLon]} icon={cycloneIcon}>
-              <Popup>
-                <div className="min-w-[190px] p-2 font-mono">
-                  <div className="font-bold text-[18px] text-rose-500 border-b border-rose-500/30 pb-1 mb-2 flex items-center justify-between">
-                    <span>{typhoon.name}</span>
-                    <span className="text-xs text-amber-300 font-normal animate-pulse">{interpTime}</span>
+            {cycloneIcon && (
+              <Marker position={[safeLat, safeLon]} icon={cycloneIcon}>
+                <Popup autoPan={false}>
+                  <div className="min-w-[190px] p-2 font-mono">
+                    <div className="font-bold text-[18px] text-rose-500 border-b border-rose-500/30 pb-1 mb-2 flex items-center justify-between">
+                      <span>{typhoon.name}</span>
+                      <span className="text-xs text-amber-300 font-normal animate-pulse">{interpTime}</span>
+                    </div>
+                    <div className="text-gray-300 space-y-1 text-xs">
+                      <div>狀態: <span className="text-rose-400 font-bold">{typhoon.status}</span></div>
+                      <div>預估座標: {safeLat.toFixed(2)}°N, {safeLon.toFixed(2)}°E</div>
+                      <div>中心氣壓: {typhoon.current.pressure} hPa</div>
+                      <div>近中心最大風速: {typhoon.current.maxWind} m/s</div>
+                      <div>七級風半徑: {typhoon.current.radius7} km</div>
+                    </div>
                   </div>
-                  <div className="text-gray-300 space-y-1 text-xs">
-                    <div>狀態: <span className="text-rose-400 font-bold">{typhoon.status}</span></div>
-                    <div>預估座標: {interpLat.toFixed(2)}°N, {interpLon.toFixed(2)}°E</div>
-                    <div>中心氣壓: {typhoon.current.pressure} hPa</div>
-                    <div>近中心最大風速: {typhoon.current.maxWind} m/s</div>
-                    <div>七級風半徑: {typhoon.current.radius7} km</div>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
+                </Popup>
+              </Marker>
+            )}
           </>
         )}
       </MapContainer>
@@ -344,7 +345,7 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
             </div>
             <div className="flex items-center gap-3 text-gray-300">
               <span className="text-amber-300 font-bold">🕒 {interpTime}</span>
-              <span className="text-sky-300 font-mono">📍 {interpLat.toFixed(1)}°N, {interpLon.toFixed(1)}°E</span>
+              <span className="text-sky-300 font-mono">📍 {safeLat.toFixed(1)}°N, {safeLon.toFixed(1)}°E</span>
             </div>
           </div>
 
