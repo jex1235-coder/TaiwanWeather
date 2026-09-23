@@ -1,5 +1,5 @@
 'use client';
-import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Polyline, Circle, ImageOverlay } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { useEffect, useState, Fragment } from 'react';
@@ -50,6 +50,14 @@ export default function Map({ stations, aqiStations, typhoon, activeLayer }: { s
         <TileLayer
           url={radarUrl}
           opacity={0.65}
+        />
+      )}
+
+      {activeLayer === 'cwa_radar' && (
+        <ImageOverlay
+          url={`https://cwaopendata.s3.ap-northeast-1.amazonaws.com/Observation/O-A0058-003.png?t=${Date.now()}`}
+          bounds={[[20.5, 118.0], [26.5, 124.0]]}
+          opacity={0.7}
         />
       )}
 
